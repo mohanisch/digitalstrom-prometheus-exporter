@@ -47,7 +47,7 @@ https://dss.local:8080/json/system/enableToken?applicationToken=4fa07386c77d7f32
 
 ### Usage
 ```
-docker run -d -p 9184:9184 -e DSS_LOGINTOKEN=4fa07386c77d7f32260066c83b58aece5814698376bd03f0e3b5764e58f0ec1a marcohansch/dss_prometheus_exporter
+docker run -d -p 9184:9184 -e DSS_LOGINTOKEN=4fa07386c77d7f32260066c83b58aece5814698376bd03f0e3b5764e58f0ec1a marcohansch/digitalstrom-prometheus-exporter
 ```
 
 ### CHANGELOG
