@@ -1,0 +1,201 @@
+{
+	"info": {
+		"_postman_id": "cf21c977-08d3-40ee-985b-20bdc8dd2ef8",
+		"name": "digitalstrom",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "/json/system/loginApplication",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://dss.local:8080/json/system/loginApplication?loginToken=xxxx",
+					"protocol": "https",
+					"host": [
+						"dss",
+						"local"
+					],
+					"port": "8080",
+					"path": [
+						"json",
+						"system",
+						"loginApplication"
+					],
+					"query": [
+						{
+							"key": "loginToken",
+							"value": "xxxx"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "/json/system/version",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://dss.local:8080/json/system/version?token=xxxxx",
+					"protocol": "https",
+					"host": [
+						"dss",
+						"local"
+					],
+					"port": "8080",
+					"path": [
+						"json",
+						"system",
+						"version"
+					],
+					"query": [
+						{
+							"key": "token",
+							"value": "xxxxx"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "/json/device/setOutputChannelValue2",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://dss.local:8080/json/device/setOutputChannelValue2?dsuid=2c7422c5356f520e80d5f076b30c266200&channels={\"brightness\": {\"value\": 80, \"automatic\": true}, \"saturation\": {\"value\": 20}, \"colortemp\": {\"value\": 3000}}&token=xxxxxxx",
+					"protocol": "https",
+					"host": [
+						"dss",
+						"local"
+					],
+					"port": "8080",
+					"path": [
+						"json",
+						"device",
+						"setOutputChannelValue2"
+					],
+					"query": [
+						{
+							"key": "dsuid",
+							"value": "2c7422c5356f520e80d5f076b30c266200"
+						},
+						{
+							"key": "channels",
+							"value": "{\"brightness\": {\"value\": 80, \"automatic\": true}, \"saturation\": {\"value\": 20}, \"colortemp\": {\"value\": 3000}}"
+						},
+						{
+							"key": "token",
+							"value": "xxxxxxx"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "/json/circuit/getConsumption",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://dss.local:8080/json/circuit/getConsumption?token=xxxxxx&id=302ed89f43f00e400000b502",
+					"protocol": "https",
+					"host": [
+						"dss",
+						"local"
+					],
+					"port": "8080",
+					"path": [
+						"json",
+						"circuit",
+						"getConsumption"
+					],
+					"query": [
+						{
+							"key": "token",
+							"value": "xxxxxx"
+						},
+						{
+							"key": "id",
+							"value": "302ed89f43f00e400000b502"
+						}
+					]
+				},
+				"description": "consumption by meter"
+			},
+			"response": []
+		},
+		{
+			"name": "/json/apartment/getCircuits",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://dss.local:8080/json/apartment/getCircuits?token=577af0fd46ecd801d50014b3d524b867af2465ebbf26391582ad4e812f40f16a",
+					"protocol": "https",
+					"host": [
+						"dss",
+						"local"
+					],
+					"port": "8080",
+					"path": [
+						"json",
+						"apartment",
+						"getCircuits"
+					],
+					"query": [
+						{
+							"key": "token",
+							"value": "577af0fd46ecd801d50014b3d524b867af2465ebbf26391582ad4e812f40f16a"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "/json/device/getTransmissionQuality",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://dss.local:8080/json/device/getTransmissionQuality?token=xxxxxxx&_dc=1620768407678&dsuid=303505d7f800000000000f000011012100",
+					"protocol": "https",
+					"host": [
+						"dss",
+						"local"
+					],
+					"port": "8080",
+					"path": [
+						"json",
+						"device",
+						"getTransmissionQuality"
+					],
+					"query": [
+						{
+							"key": "token",
+							"value": "xxxxxxx"
+						},
+						{
+							"key": "_dc",
+							"value": "1620768407678"
+						},
+						{
+							"key": "dsuid",
+							"value": "303505d7f800000000000f000011012100"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
