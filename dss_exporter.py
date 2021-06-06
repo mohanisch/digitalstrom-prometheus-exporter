@@ -72,14 +72,12 @@ class DssCollector(object):
             "{0}/json/apartment/getCircuits".format(
                 self._target))
         circuits_request.add_header("Cookie", "token=%s" % self._sessiontoken)
-        print("Collecting circuits...")
         circuits_list = json.loads(urllib2.urlopen(circuits_request).read())['result']['circuits']
 
         for circuit_data in circuits_list:
             if circuit_data['dsid']:
                 circuit_details = {'name': circuit_data['name'], 'dsid': circuit_data['dsid']}
                 circuits.append(circuit_details)
-        print("Collecting devices... Done. Found {0} circuits.".format(len(circuits)))
 
         return circuits
 
@@ -88,9 +86,7 @@ class DssCollector(object):
             "{0}/json/apartment/getDevices".format(
                 self._target))
         devices_request.add_header("Cookie", "token=%s" % self._sessiontoken)
-        print("Collecting devices...")
         devices = json.loads(urllib2.urlopen(devices_request).read())['result']
-        print("Collecting devices... Done. Found {0} devices.".format(len(devices)))
 
         return devices
 
@@ -140,7 +136,7 @@ class DssCollector(object):
             'dss_device_is_present',
             'Current state of device',
             labels=["device", "fstype"])
-        for device in self._devices:
+        for device in self.collect_devices():
             device_name = self._mount_point(device['name'])
 
             ddp.add_metric(
