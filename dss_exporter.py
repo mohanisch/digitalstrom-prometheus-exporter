@@ -108,11 +108,11 @@ class DssCollector(object):
         i = self._appartment['result']
         yield GaugeMetricFamily(
             'dss_appartment_consumption',
-            'Available Processors', value=i['consumption'])
+            'Current total power consumption [W]', value=i['consumption'])
 
         dcc = GaugeMetricFamily(
             'dss_circuit_consumption',
-            'Current power consumption [W]',
+            'Current power consumption per meter [W]',
             labels=["circuit", "hwName"])
         dcm = GaugeMetricFamily(
             'dss_circuit_metervalue',
@@ -145,36 +145,15 @@ class DssCollector(object):
                 [device_name, device['meterName'], device_vdc, device_name], device['isPresent'])
         yield ddp
 
-        ### disabled as the response takes very long
-        ### TODO: This collection should only run sometimes a day, not all the time
-        # dtq = GaugeMetricFamily(
-        #     'dss_device_transmission_quality',
-        #     'The actual transmission quality (upstream: 0 to 62, 62 meaning best quality, downstream: 0 to 6,'
-        #     '0 meaning best quality)',
-        #     labels=["device", "fstype"])
-        #
-        # for device in self._devices:
-        #     device_name = self._mount_point(device['name'])
-        #     device_quality_request = urllib2.Request(
-        #         "{0}/json/device/getTransmissionQuality?dsuid={1}".format(
-        #             self._target, device['dSUID']))
-        #     device_quality_request.add_header("Cookie", "token=%s" % self._sessiontoken)
-        #     device_quality = json.loads(urllib2.urlopen(device_quality_request).read())['result']
-        #     dtq.add_metric(
-        #         [device_name, "upstream", device_name], device_quality['upstream'])
-        #     dtq.add_metric(
-        #         [device_name, "downstream", device_name], device_quality['downstream'])
-        # yield dtq
-
     def _mount_point(self, description):
         return description.split('(')[0].strip()
 
     def _request_data(self):
-        appartment_request = urllib2.Request(
+        apartment_request = urllib2.Request(
             "{0}/json/apartment/getConsumption".format(
                 self._target))
-        appartment_request.add_header("Cookie", "token=%s" % self._sessiontoken)
-        self._appartment = json.loads(urllib2.urlopen(appartment_request).read())
+        apartment_request.add_header("Cookie", "token=%s" % self._sessiontoken)
+        self._appartment = json.loads(urllib2.urlopen(apartment_request).read())
 
 
 def fatal(msg):
