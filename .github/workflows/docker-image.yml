@@ -30,7 +30,7 @@ jobs:
           docker buildx build \
             --platform linux/amd64,linux/arm/v7 \
             --output "type=image,push=false" \
-            --file ./Dockerfile 
+            --file ./Dockerfile .
       -
         name: Login to DockerHub
         if: success() && github.event_name != 'pull_request'
