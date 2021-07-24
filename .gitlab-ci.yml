@@ -11,8 +11,7 @@ docker-build:
   script:
     - docker run --rm --privileged multiarch/qemu-user-static --reset -p yes; docker buildx create --use
     - > 
-      docker buildx build \
-        --push --platform linux/amd64,linux/arm/v7 \
+      docker buildx build --push --platform linux/amd64,linux/arm/v7 \
         --tag registry.gitlab.com/mfsh/docker/${$CI_REGISTRY_IMAGE}:1.0.2
   rules:
     - if: $CI_COMMIT_BRANCH
