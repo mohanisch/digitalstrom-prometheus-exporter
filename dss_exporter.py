@@ -136,13 +136,13 @@ class DssCollector(object):
         ddp = GaugeMetricFamily(
             'dss_device_is_present',
             'Current state of device',
-            labels=["device", "meterName", "vdc"])
+            labels=["device", "meterName", "vdc", "zoneID"])
         for device in self.collect_devices():
             device_name = self._mount_point(device['name'])
             device_vdc = str(device['isVdcDevice'])
 
             ddp.add_metric(
-                [device_name, device['meterName'], device_vdc, device_name], device['isPresent'])
+                [device_name, device['meterName'], device_vdc, device_name, device['zoneID']], device['isPresent'])
         yield ddp
 
     def _mount_point(self, description):
