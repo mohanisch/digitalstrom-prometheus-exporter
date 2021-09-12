@@ -140,9 +140,10 @@ class DssCollector(object):
         for device in self.collect_devices():
             device_name = self._mount_point(device['name'])
             device_vdc = str(device['isVdcDevice'])
+            device_zone = str(device['zoneID'])
 
             ddp.add_metric(
-                [device_name, device['meterName'], device_vdc, device_name, device['zoneID']], device['isPresent'])
+                [device_name, device['meterName'], device_vdc, device_zone], device['isPresent'])
         yield ddp
 
     def _mount_point(self, description):
