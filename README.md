@@ -45,5 +45,6 @@ docker run -d \
     marcohanisch/digitalstrom-prometheus-exporter
 ```
 
-
+#Changelog
+v1.0.3
 
