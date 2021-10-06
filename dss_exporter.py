@@ -68,6 +68,7 @@ class DssCollector(object):
 
     def collect_circuits(self):
         circuits = []
+        circuits = []
         circuits_request = urllib2.Request(
             "{0}/json/apartment/getCircuits".format(
                 self._target))
