@@ -1,6 +1,6 @@
 variables:
   COMPONENT: "${CI_REGISTRY_IMAGE}"
-  COMPONENT_VERSION: "2.0.0"
+  COMPONENT_VERSION: "2.0.1"
 
 docker-build:
   image: jdrouet/docker-with-buildx:stable
