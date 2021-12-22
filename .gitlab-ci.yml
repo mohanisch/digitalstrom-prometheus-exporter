@@ -1,3 +1,7 @@
+variables:
+  COMPONENT: "${CI_REGISTRY_IMAGE}"
+  COMPONENT_VERSION: "2.0.0"
+
 docker-build:
   image: jdrouet/docker-with-buildx:stable
   stage: build
@@ -10,7 +14,7 @@ docker-build:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
   script:
     - docker run --rm --privileged multiarch/qemu-user-static --reset -p yes; docker buildx create --use
-    - docker buildx build --push --platform linux/amd64,linux/arm/v7 --tag "${CI_REGISTRY_IMAGE}:1.0.2" .
+    - docker buildx build --push --platform linux/amd64,linux/arm/v7 --tag "${COMPONENT}:${COMPONENT_VERSION}" .
   rules:
     - if: $CI_COMMIT_BRANCH
       exists:
