@@ -44,8 +44,8 @@ def parse():
         default=os.environ.get("DSS_HOST", "https://dss.local:8080")
     )
     parser.add_argument(
-        "--logintoken", "-l", help="logintoken",
-        default=os.environ.get("DSS_LOGINTOKEN", "")
+        "--bearertoken", "-l", help="bearertoken",
+        default=os.environ.get("DSS_BEARERTOKEN", "")
     )
     return parser.parse_args()
 
