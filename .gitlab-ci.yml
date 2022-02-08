@@ -1,7 +1,3 @@
-variables:
-  COMPONENT: "${CI_REGISTRY_IMAGE}"
-  COMPONENT_VERSION: "2.0.2"
-
 docker-build:
   image: jdrouet/docker-with-buildx:stable
   stage: build
@@ -11,10 +7,15 @@ docker-build:
   services:
     - docker:dind
   before_script:
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+    - echo "${CI_REGISTRY_PASSWORD}" | docker login -u "${CI_REGISTRY_USER}" --password-stdin "${CI_REGISTRY}"
+    - echo "${DOCKERHUB_ACCESS_TOKE}N" | docker login -u marcohanisch --password-stdin
   script:
     - docker run --rm --privileged multiarch/qemu-user-static --reset -p yes; docker buildx create --use
-    - docker buildx build --push --platform linux/amd64,linux/arm/v7 --tag "${COMPONENT}:${COMPONENT_VERSION}" .
+    - |
+        docker buildx build --push --platform linux/amd64,linux/arm/v7 \
+          --tag "${CI_REGISTRY_IMAGE}:${CI_COMMIT_TAG}" \
+          --tag "marcohanisch/${CI_PROJECT_NAME}:${CI_COMMIT_TAG}" \
+          .
   rules:
     - if: $CI_COMMIT_BRANCH
       exists:
