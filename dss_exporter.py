@@ -130,19 +130,19 @@ class DssCollector(object):
 
     def zones(self):
         zones_attributes = self.request("zones")['zones']
-
+        zones_states = self.request("zones/status")
         zones = []
+
         for zone in zones_attributes:
             zones_measurements = {}
             if "name" not in zone["attributes"]:
                 if zone["id"] == "65534":
                     zone["attributes"]["name"] = "New devices"
 
-            zones_status = self.request("zones/" + zone["id"] + "/status")
-
-            if 'attributes' in zones_status:
-                if 'measurements' in zones_status['attributes']:
-                    zones_measurements = zones_status['attributes']['measurements']
+            zone_states = ({int(v['id']): v for v in zones_states}).get(int(zone['id']))
+            if 'attributes' in zone_states:
+                if 'measurements' in zone_states['attributes']:
+                    zones_measurements = zone_states['attributes']['measurements']
 
             cleaned = {
                 "id": zone["id"],
@@ -288,7 +288,6 @@ class DssCollector(object):
                         [zone['name'], measurement], round(value, 0))
 
         yield ddzm
-
 
     def _request_data(self):
         self._appartment = self.request()
