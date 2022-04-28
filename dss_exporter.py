@@ -151,11 +151,19 @@ class DssCollector(object):
             }
             zones.append(cleaned)
 
+        empty_zone = {
+            "id": 0,
+            "name": "Alle Geräte",
+            "measurements": {}
+        }
+        zones.append(empty_zone)
+
         return zones
 
     def collect_output_devices(self):
         devices_attributes = self.request("dsDevices")
         devices = []
+
         for device in devices_attributes:
             d = {
                 "id": device['id'],
@@ -164,7 +172,6 @@ class DssCollector(object):
                 "zone": ({int(v['id']): v['name'] for v in self._zones}).get(int(device['attributes']['zone']))
             }
             devices.append(d)
-
         return devices
 
     def collect_devices_status(self):
@@ -189,8 +196,8 @@ class DssCollector(object):
     def collect(self):
         try:
             self._request_data()
-            self._output_devices = self.collect_output_devices()
             self._zones = self.zones()
+            self._output_devices = self.collect_output_devices()
         except HTTPError as err:
             if err.code == 401:
                 fatal('Authentication failure, attempting to restart')
