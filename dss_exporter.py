@@ -55,13 +55,13 @@ class DssCollector(object):
         self._target = target.rstrip("/")
         self._base_uri = "/api/v1"
         self._auth = bearertoken
+
         self._appartment = {}
-        self._controllers = self.collect_controllers()
+        self._controllers = {}
+        self._meterings = {}
         self._zones = {}
-        self._meterings = self.collect_meterings()
-        self._circuits = self.circuits()
-        self._output_devices = {}
-        self._data = {}
+        self._devices = {}
+        self._devices_status = {}
 
     def request(self, uri=""):
         request = urllib2.Request(
@@ -72,112 +72,110 @@ class DssCollector(object):
 
         return request_data
 
-    def collect_controllers(self):
-        controllers = []
-        controllers_list = self.request("controllers")['controllers']
+    def collect(self):
+        metering_value_by_meter_id = {}
+        controller_name_by_id = {}
+        zone_attributes_by_id = {}
+        device_attributes_by_id = {}
 
-        for controllers_data in controllers_list:
-            if 'attributes' in controllers_data:
-                controllers_details = {
-                    'id': controllers_data['id'],
-                    'name': controllers_data['attributes']['name']
-                }
-                controllers.append(controllers_details)
+        try:
+            self._request_data()
+            meterings_values = self.request("installation/meterings/values")["values"]
+            metering_value_by_meter_id = {circuits_value['id']: circuits_value['attributes']['value'] for circuits_value
+                                          in meterings_values}
+            controller_name_by_id = {controller['id']: controller['attributes']['name'] for controller in
+                                     self._controllers}
+            device_attributes_by_id = {device['id']: device['attributes'] for device in self._devices}
+            zone_attributes_by_id = {zone['id']: zone['attributes'] for zone in self._zones}
+        except HTTPError as err:
+            if err.code == 401:
+                fatal('Authentication failure, attempting to restart')
+        except URLError as err:
+            fatal(err)
 
-        return controllers
+        i = self._appartment
+        yield GaugeMetricFamily(
+            'dss_appartment_temprature',
+            'Current temprature [°]', value=i['attributes']['measurements']['temperature'])
 
-    def collect_meterings(self):
-        meterings = []
-        meterings_list = self.request("meterings")['meterings']
+        dcc = GaugeMetricFamily(
+            'dss_controller',
+            'Available controllers in dS',
+            labels=["id", "name"])
 
-        for meterings_data in meterings_list:
-            if 'attributes' in meterings_data:
-                if 'id' in meterings_data['attributes']['origin']:
-                    meterings_details = {
-                        'id': meterings_data['id'],
-                        'dsid': meterings_data['attributes']['origin']['id'],
-                        'unit': meterings_data['attributes']['unit'],
-                        'meterType': meterings_data['attributes']['technicalName'].split()[0],
-                        'meterValueType': meterings_data['attributes']['technicalName'].split()[1]
+        for controller in self._controllers:
+            if 'attributes' in controller:
+                dcc.add_metric(
+                    [controller['id'], controller['attributes']['name']], 1)
+        yield dcc
+
+
+
+        dmc = GaugeMetricFamily(
+            'dss_metering_consumption',
+            'Current power consumption per meter [W]',
+            labels=["name", "hwName"])
+        dmm = GaugeMetricFamily(
+            'dss_metering_metervalue',
+            'Current measurent of the power consumption [Ws]',
+            labels=["name", "hwName"])
+
+
+
+        for metering in self._meterings:
+            if 'attributes' in metering:
+                if 'id' in metering['attributes']['origin']:
+                    metering_details = {
+                        'id': metering['id'],
+                        'dsid': metering['attributes']['origin']['id'],
+                        'unit': metering['attributes']['unit'],
+                        'meterType': metering['attributes']['technicalName'].split()[0],
+                        'meterValueType': metering['attributes']['technicalName'].split()[1]
                     }
-                    meterings.append(meterings_details)
+                    meter_value = (metering_value_by_meter_id[metering_details['id']])
+                    if metering_details['meterValueType'] == 'power':
+                        dmc.add_metric(
+                            [controller_name_by_id[metering_details['dsid']],
+                             metering_details['meterType'],
+                             metering_details['meterValueType']], meter_value)
+                    if metering_details['meterValueType'] == 'energy':
+                        dmm.add_metric(
+                            [controller_name_by_id[metering_details['dsid']],
+                             metering_details['meterType'],
+                             metering_details['meterValueType']], meter_value)
+        yield dmc
+        yield dmm
 
-        return meterings
+        ddp = GaugeMetricFamily(
+            'dss_device_is_present',
+            'Current state of device',
+            labels=["device", "zone"])
 
-    def circuits(self):
-        meterings = self._meterings
-        controllers = self._controllers
-
-        metering_by_dsid = {metering['dsid']: metering for metering in meterings}
-
-        circuits = []
-        for controller in controllers:
-            if controller['id'] in metering_by_dsid:
-                meterid = controller['id']
-                meterings = metering_by_dsid[meterid]
-                circuit = {
-                    "dsid": meterings["dsid"],
-                    "meterids": {
-                        "power": "dsm-" + meterings["dsid"] + "-power",
-                        "energy": "dsm-" + meterings["dsid"] + "-energy"
-                    },
-                    "name": controller['name'],
-                    "hwName": meterings['meterType']
-                }
-                circuits.append(circuit)
-
-        return circuits
-
-    def zones(self):
-        zones_attributes = self.request("zones")['zones']
-        zones_states = self.request("zones/status")
-        zones = []
-
-        for zone in zones_attributes:
-            zones_measurements = {}
-            if "name" not in zone["attributes"]:
-                if zone["id"] == "65534":
-                    zone["attributes"]["name"] = "New devices"
-
-            zone_states = ({int(v['id']): v for v in zones_states}).get(int(zone['id']))
-            if 'attributes' in zone_states:
-                if 'measurements' in zone_states['attributes']:
-                    zones_measurements = zone_states['attributes']['measurements']
-
-            cleaned = {
-                "id": zone["id"],
-                "name": zone["attributes"]["name"],
-                "measurements": zones_measurements
-            }
-            zones.append(cleaned)
-
-        empty_zone = {
-            "id": 0,
-            "name": "Alle Geräte",
-            "measurements": {}
-        }
-        zones.append(empty_zone)
-
-        return zones
-
-    def collect_output_devices(self):
-        devices_attributes = self.request("dsDevices")
-        devices = []
-
-        for device in devices_attributes:
+        for device in self._devices:
             d = {
                 "id": device['id'],
                 "name": device['attributes']['name'],
                 "present": device['attributes']['present'],
-                "zone": ({int(v['id']): v['name'] for v in self._zones}).get(int(device['attributes']['zone']))
+                "zone": zone_attributes_by_id[device['attributes']['zone']]['name']
             }
-            devices.append(d)
-        return devices
+            ddp.add_metric(
+                [d['name'], d['zone'], d['name']], d['present'])
 
-    def collect_devices_status(self):
-        devices_status_attributes = self.request("dsDevices/status")
-        devices = []
-        for device in devices_status_attributes:
+        yield ddp
+
+
+
+
+        dss_device_value = GaugeMetricFamily(
+            'dss_device_value',
+            'Current function value of device in percent',
+            labels=["device", "zone", "type", "value"])
+        dss_device_state = GaugeMetricFamily(
+            'dss_device_state',
+            'Current function status of device. 1 = ok, 2 = moving/dimming',
+            labels=["device", "zone", "type", "status"])
+
+        for device in self._devices_status:
             if "outputs" in device['attributes']['functionBlocks'][0]:
                 outputs = device['attributes']['functionBlocks'][0]['outputs'][0]
 
@@ -190,114 +188,54 @@ class DssCollector(object):
                     "value": value,
                     "status": device['attributes']['functionBlocks'][0]['outputs'][0]['status'],
                 }
-                devices.append(d)
-        return devices
+                device_name = device_attributes_by_id[d['id']]['name']
+                device_zone = zone_attributes_by_id[device_attributes_by_id[d['id']]['zone']]['name']
 
-    def collect(self):
-        try:
-            self._request_data()
-            self._zones = self.zones()
-            self._output_devices = self.collect_output_devices()
-        except HTTPError as err:
-            if err.code == 401:
-                fatal('Authentication failure, attempting to restart')
-        except URLError as err:
-            fatal(err)
+                state_float = 0
+                if d['status'] == "ok":
+                    state_float = 1
+                if d['status'] == "moving":
+                    state_float = 2
 
-        # i = self._appartment['data']
-        yield GaugeMetricFamily(
-            'dss_appartment_consumption',
-            'Current total power consumption [W]', value='444')  # i['attributes']['value'])
+                dss_device_value.add_metric(
+                    [device_name, device_zone, d['type']], round(d['value'], 0))
+                dss_device_state.add_metric(
+                    [device_name, device_zone, d['type']], state_float)
 
-        dcc = GaugeMetricFamily(
-            'dss_circuit_consumption',
-            'Current power consumption per meter [W]',
-            labels=["circuit", "hwName"])
-        dcm = GaugeMetricFamily(
-            'dss_circuit_metervalue',
-            'Current measurent of the power consumption [Ws]',
-            labels=["circuit", "hwName"])
+        yield dss_device_value
+        yield dss_device_state
 
-        circuits_values = self.request("installation/meterings/values")["values"]
-        circuits_values_by_meter_id = {circuits_value['id']: circuits_value for circuits_value in circuits_values}
 
-        for circuit in self._circuits:
-            circuit_name = circuit['name']
-            circuit_type = circuit['hwName']
-            circuit_power = (circuits_values_by_meter_id[circuit["meterids"]["power"]])
-
-            dcc.add_metric(
-                [circuit_name, circuit_type, circuit['name']], circuit_power["attributes"]["value"])
-
-        for circuit in self._circuits:
-            circuit_name = circuit['name']
-            circuit_type = circuit['hwName']
-            circuit_energy = (circuits_values_by_meter_id[circuit["meterids"]["energy"]])
-
-            dcm.add_metric(
-                [circuit_name, circuit_type, circuit['name']], circuit_energy["attributes"]["value"])
-
-        yield dcc
-        yield dcm
-
-        ddp = GaugeMetricFamily(
-            'dss_device_is_present',
-            'Current state of device',
-            labels=["device", "zone"])
-        for device in self._output_devices:
-            device_name = device['name']
-
-            ddp.add_metric(
-                [device_name, device['zone'], device_name], device['present'])
-
-        yield ddp
-
-        ddsv = GaugeMetricFamily(
-            'dss_device_value',
-            'Current function value of device in percent',
-            labels=["device", "zone", "type", "value"])
-        ddss = GaugeMetricFamily(
-            'dss_device_state',
-            'Current function status of device. 1 = ok, 2 = moving/dimming',
-            labels=["device", "zone", "type", "status"])
-
-        device_states = self.collect_devices_status()
-        devices = {device['id']: device for device in self._output_devices}
-
-        for device in device_states:
-            device_name = devices[device['id']]['name']
-            device_zone = devices[device['id']]['zone']
-            ddsv.add_metric(
-                [device_name, device_zone, device['type']], round(device['value'], 0))
-
-            state_float = 0
-            if device['status'] == "ok":
-                state_float = 1
-            if device['status'] == "moving":
-                state_float = 2
-            ddss.add_metric(
-                [device_name, device_zone, device['type']], state_float)
-
-        yield ddsv
-        yield ddss
-
-        ddzm = GaugeMetricFamily(
+        dss_zone_measurements = GaugeMetricFamily(
             'dss_zone_measurements',
             'Current measurements value of zone - temperature in degree, humidity in percent, '
             'brightness in lux, motion in bool ',
             labels=["zone", "type", "value"])
 
-        zone_states = self._zones
-        for zone in zone_states:
-            if 'measurements' in zone:
-                for measurement, value in zone['measurements'].items():
-                    ddzm.add_metric(
-                        [zone['name'], measurement], round(value, 0))
+        for zones_measurement in self._zones_measurements:
+            if 'measurements' in zones_measurement['attributes']:
+                print(zones_measurement['id'])
+                if zones_measurement['id'] == "65534":
+                    continue
+                else:
+                    zone_name = zone_attributes_by_id[zones_measurement['id']]['name']
 
-        yield ddzm
+                for measurement, value in zones_measurement['attributes']['measurements'].items():
+                    dss_zone_measurements.add_metric(
+                        [zone_name, measurement], round(value, 0))
+
+        yield dss_zone_measurements
+
+
 
     def _request_data(self):
-        self._appartment = self.request()
+        self._appartment = self.request("/status")
+        self._controllers = self.request("/controllers")['controllers']
+        self._meterings = self.request("meterings")['meterings']
+        self._zones = self.request("zones")['zones']
+        self._zones_measurements = self.request("zones/status")
+        self._devices = self.request("dsDevices")
+        self._devices_status = self.request("dsDevices/status")
 
 
 def fatal(msg):
