@@ -94,9 +94,10 @@ class DssCollector(object):
             fatal(err)
 
         i = self._appartment
+        dss_appartment_temprature = i['attributes']['measurements']['temperature'] if "measurements" in i['attributes'] else 0
         yield GaugeMetricFamily(
             'dss_appartment_temprature',
-            'Current temprature [°]', value=i['attributes']['measurements']['temperature'])
+            'Current temprature [°]', value=dss_appartment_temprature)
 
         dcc = GaugeMetricFamily(
             'dss_controller',
@@ -214,7 +215,6 @@ class DssCollector(object):
 
         for zones_measurement in self._zones_measurements:
             if 'measurements' in zones_measurement['attributes']:
-                print(zones_measurement['id'])
                 if zones_measurement['id'] == "65534":
                     continue
                 else:
