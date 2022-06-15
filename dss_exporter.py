@@ -214,15 +214,15 @@ class DssCollector(object):
             labels=["zone", "type", "value"])
 
         for zones_measurement in self._zones_measurements:
-            if 'measurements' in zones_measurement['attributes']:
-                if zones_measurement['id'] == "65534":
-                    continue
-                else:
+            if zones_measurement['id'] == "65534":
+                continue
+            else:
+                if 'measurements' in zones_measurement['attributes']:
                     zone_name = zone_attributes_by_id[zones_measurement['id']]['name']
 
-                for measurement, value in zones_measurement['attributes']['measurements'].items():
-                    dss_zone_measurements.add_metric(
-                        [zone_name, measurement], round(value, 0))
+                    for measurement, value in zones_measurement['attributes']['measurements'].items():
+                        dss_zone_measurements.add_metric(
+                            [zone_name, measurement], round(value, 0))
 
         yield dss_zone_measurements
 
