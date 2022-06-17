@@ -1,5 +1,5 @@
 variables:
-  VERSION: "3.0.2"
+  VERSION: "3.0.3"
 
 docker-build:
   image: jdrouet/docker-with-buildx:stable

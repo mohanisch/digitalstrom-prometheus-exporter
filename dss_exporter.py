@@ -63,6 +63,14 @@ class DssCollector(object):
         self._devices = {}
         self._devices_status = {}
 
+    def _zone_attributes_by_id(self, zoneid):
+        _attr = {}
+        if zoneid in ("0", "65534"):
+            _attr = {zoneid: {'name': "unknown"}}
+        else:
+            _attr = {zone['id']: zone['attributes'] for zone in self._zones}
+        return _attr[str(zoneid)]
+
     def request(self, uri=""):
         request = urllib2.Request(
             "{0}/{1}/apartment/{2}".format(
@@ -75,7 +83,6 @@ class DssCollector(object):
     def collect(self):
         metering_value_by_meter_id = {}
         controller_name_by_id = {}
-        zone_attributes_by_id = {}
         device_attributes_by_id = {}
 
         try:
@@ -86,7 +93,6 @@ class DssCollector(object):
             controller_name_by_id = {controller['id']: controller['attributes']['name'] for controller in
                                      self._controllers}
             device_attributes_by_id = {device['id']: device['attributes'] for device in self._devices}
-            zone_attributes_by_id = {zone['id']: zone['attributes'] for zone in self._zones}
         except HTTPError as err:
             if err.code == 401:
                 fatal('Authentication failure, attempting to restart')
@@ -94,7 +100,8 @@ class DssCollector(object):
             fatal(err)
 
         i = self._appartment
-        dss_appartment_temprature = i['attributes']['measurements']['temperature'] if "measurements" in i['attributes'] else 0
+        dss_appartment_temprature = i['attributes']['measurements']['temperature'] if "measurements" in i[
+            'attributes'] else 0
         yield GaugeMetricFamily(
             'dss_appartment_temprature',
             'Current temprature [°]', value=dss_appartment_temprature)
@@ -110,8 +117,6 @@ class DssCollector(object):
                     [controller['id'], controller['attributes']['name']], 1)
         yield dcc
 
-
-
         dmc = GaugeMetricFamily(
             'dss_metering_consumption',
             'Current power consumption per meter [W]',
@@ -120,8 +125,6 @@ class DssCollector(object):
             'dss_metering_metervalue',
             'Current measurent of the power consumption [Ws]',
             labels=["name", "hwName"])
-
-
 
         for metering in self._meterings:
             if 'attributes' in metering:
@@ -157,15 +160,12 @@ class DssCollector(object):
                 "id": device['id'],
                 "name": device['attributes']['name'],
                 "present": device['attributes']['present'],
-                "zone": zone_attributes_by_id[device['attributes']['zone']]['name']
+                "zone": self._zone_attributes_by_id(device['attributes']['zone'])['name']
             }
             ddp.add_metric(
                 [d['name'], d['zone'], d['name']], d['present'])
 
         yield ddp
-
-
-
 
         dss_device_value = GaugeMetricFamily(
             'dss_device_value',
@@ -190,7 +190,7 @@ class DssCollector(object):
                     "status": device['attributes']['functionBlocks'][0]['outputs'][0]['status'],
                 }
                 device_name = device_attributes_by_id[d['id']]['name']
-                device_zone = zone_attributes_by_id[device_attributes_by_id[d['id']]['zone']]['name']
+                device_zone = self._zone_attributes_by_id(device_attributes_by_id[d['id']]['zone'])['name']
 
                 state_float = 0
                 if d['status'] == "ok":
@@ -206,7 +206,6 @@ class DssCollector(object):
         yield dss_device_value
         yield dss_device_state
 
-
         dss_zone_measurements = GaugeMetricFamily(
             'dss_zone_measurements',
             'Current measurements value of zone - temperature in degree, humidity in percent, '
@@ -218,15 +217,13 @@ class DssCollector(object):
                 continue
             else:
                 if 'measurements' in zones_measurement['attributes']:
-                    zone_name = zone_attributes_by_id[zones_measurement['id']]['name']
+                    zone_name = self._zone_attributes_by_id(zones_measurement['id'])['name']
 
                     for measurement, value in zones_measurement['attributes']['measurements'].items():
                         dss_zone_measurements.add_metric(
                             [zone_name, measurement], round(value, 0))
 
         yield dss_zone_measurements
-
-
 
     def _request_data(self):
         self._appartment = self.request("/status")
