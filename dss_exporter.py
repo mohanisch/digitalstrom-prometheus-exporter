@@ -64,12 +64,12 @@ class DssCollector(object):
         self._devices_status = {}
 
     def _zone_attributes_by_id(self, zoneid):
-        _attr = {}
-        if zoneid in ("0", "65534"):
-            _attr = {zoneid: {'name': "unknown"}}
+        _attr = {zone['id']: zone['attributes'] for zone in self._zones}
+
+        if 'name' not in _attr[str(zoneid)] or zoneid in ("0", "65534"):
+            return {zoneid: {'name': "unknown"}}
         else:
-            _attr = {zone['id']: zone['attributes'] for zone in self._zones}
-        return _attr[str(zoneid)]
+            return _attr[str(zoneid)]
 
     def request(self, uri=""):
         request = urllib2.Request(
@@ -213,7 +213,7 @@ class DssCollector(object):
             labels=["zone", "type", "value"])
 
         for zones_measurement in self._zones_measurements:
-            if zones_measurement['id'] == "65534":
+            if zones_measurement['id'] == "65534" or 'attributes' not in zones_measurement:
                 continue
             else:
                 if 'measurements' in zones_measurement['attributes']:
