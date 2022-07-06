@@ -67,7 +67,7 @@ class DssCollector(object):
         _attr = {zone['id']: zone['attributes'] for zone in self._zones}
 
         if 'name' not in _attr[str(zoneid)] or zoneid in ("0", "65534"):
-            return {zoneid: {'name': "unknown"}}
+            return {'name': "unknown"}
         else:
             return _attr[str(zoneid)]
 
